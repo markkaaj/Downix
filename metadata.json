@@ -1,0 +1,6 @@
+{
+  "name": "Universal Media Downloader",
+  "description": "A universal media downloader frontend and Python backend files for Railway.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
