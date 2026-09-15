@@ -97,7 +97,9 @@ async function startServer() {
   });
 
   const app = express();
-  const PORT = 3000;
+  // In AI Studio sandbox, PORT is strictly 3000 behind the reverse proxy.
+  // In external deployments (Railway, Render, VPS, Docker), respect process.env.PORT if provided.
+  const PORT = process.env.APPLET_ID ? 3000 : (Number(process.env.PORT) || 3000);
 
   app.use(express.json());
 
@@ -910,8 +912,9 @@ async function startServer() {
     });
   }
 
-  // Vite middleware for development
-  if (process.env.NODE_ENV !== "production") {
+  // Vite middleware for development (only when running server.ts directly)
+  const isProduction = process.env.NODE_ENV === "production" || !process.argv[1]?.endsWith("server.ts");
+  if (!isProduction) {
     const vite = await createViteServer({
       server: {
         middlewareMode: true,
@@ -930,8 +933,16 @@ async function startServer() {
     });
   }
 
-  app.listen(PORT, "0.0.0.0", () => {
-    console.log(`Server running on http://localhost:${PORT}`);
+  const server = app.listen(PORT, "0.0.0.0", () => {
+    console.log(`Server running on http://localhost:${PORT} (${isProduction ? "production" : "development"})`);
+  });
+
+  server.on("error", (err: any) => {
+    if (err.code === "EADDRINUSE") {
+      console.error(`[Server Notice] Port ${PORT} is already in use by an existing process.`);
+    } else {
+      console.error("[Server Error]", err);
+    }
   });
 }
 
