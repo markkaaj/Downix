@@ -912,8 +912,23 @@ async function startServer() {
     });
   }
 
-  // Vite middleware for development (only when running server.ts directly)
-  const isProduction = process.env.NODE_ENV === "production" || !process.argv[1]?.endsWith("server.ts");
+  // Catch-all handler for unmatched /api routes to prevent returning HTML index.html
+  app.all("/api/*", (req, res) => {
+    res.status(404).json({ error: `Endpoint not found: ${req.method} ${req.path}` });
+  });
+
+  // Global API error handler
+  app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+    if (req.path.startsWith("/api")) {
+      console.error("[API Error]", err);
+      res.status(500).json({ error: err?.message || "Internal server error" });
+      return;
+    }
+    next(err);
+  });
+
+  // Vite middleware for development
+  const isProduction = process.env.NODE_ENV === "production";
   if (!isProduction) {
     const vite = await createViteServer({
       server: {

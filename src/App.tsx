@@ -125,6 +125,18 @@ interface Task {
   error?: string;
 }
 
+async function parseJsonResponse<T = any>(res: Response): Promise<T> {
+  const text = await res.text();
+  try {
+    return JSON.parse(text);
+  } catch {
+    if (!res.ok) {
+      throw new Error(`Server returned HTTP ${res.status}`);
+    }
+    throw new Error('Server returned invalid data format');
+  }
+}
+
 export default function App() {
   const [activeTab, setActiveTab] = useState<'home' | 'users' | 'settings'>('home');
   const [lang, setLang] = useState<Language>(() => {
@@ -207,7 +219,7 @@ export default function App() {
   useEffect(() => {
     if (activeTab === 'users') {
       fetch('/api/users/dashboard')
-        .then(res => res.json())
+        .then(parseJsonResponse)
         .then(data => setUsersDashboardData(data))
         .catch(console.error);
     }
@@ -243,11 +255,11 @@ export default function App() {
     try {
       const res = await fetch('/api/gifts');
       if (res.ok) {
-        setGiftsList(await res.json());
+        setGiftsList(await parseJsonResponse(res));
       }
       const tgRes = await fetch('/api/telegram/status');
       if (tgRes.ok) {
-        const tgData = await tgRes.json();
+        const tgData = await parseJsonResponse(tgRes);
         if (tgData.botUsername) setTelegramBotUsername(tgData.botUsername);
         else if (tgData.username) setTelegramBotUsername(tgData.username);
       }
@@ -261,7 +273,7 @@ export default function App() {
   useEffect(() => {
     if (isCookieModalOpen) {
       fetch('/api/cookies')
-        .then(res => res.json())
+        .then(parseJsonResponse)
         .then(data => {
           setCookieContent(data.content || '');
           setCookieStatus(null);
@@ -288,7 +300,7 @@ export default function App() {
           setCookieStatus(null);
         }, 1500);
       } else {
-        const data = await res.json();
+        const data = await parseJsonResponse(res);
         setCookieStatus({ type: 'error', message: data.error || 'خطا در ذخیره‌سازی کوکی‌ها.' });
       }
     } catch (err: any) {
@@ -303,7 +315,7 @@ export default function App() {
     try {
       const res = await fetch('/api/telegram/status');
       if (res.ok) {
-        const data = await res.json();
+        const data = await parseJsonResponse(res);
         setTelegramStatus(data);
       }
     } catch (err) {
@@ -333,7 +345,7 @@ export default function App() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ token: telegramToken })
       });
-      const data = await res.json();
+      const data = await parseJsonResponse(res);
       if (res.ok) {
         setTelegramSaveStatus({ 
           type: 'success', 
@@ -359,7 +371,7 @@ export default function App() {
     try {
       const res = await fetch('/api/cloudflare/status');
       if (res.ok) {
-        const data = await res.json();
+        const data = await parseJsonResponse(res);
         setCfStatus(data);
         if (data.accountId && !cfAccountId) setCfAccountId(data.accountId);
         if (data.databaseId && !cfDatabaseId) setCfDatabaseId(data.databaseId);
@@ -396,7 +408,7 @@ export default function App() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ apiToken: cfApiToken, accountId: cfAccountId })
       });
-      const data = await res.json();
+      const data = await parseJsonResponse(res);
       if (res.ok && data.databases) {
         setCfAvailableDbs(data.databases);
         if (data.databases.length > 0 && !cfDatabaseId) {
@@ -431,7 +443,7 @@ export default function App() {
           databaseName: cfDatabaseName || 'telegram_bot_db'
         })
       });
-      const data = await res.json();
+      const data = await parseJsonResponse(res);
       if (res.ok && data.database) {
         setCfDatabaseId(data.database.uuid);
         setCfDatabaseName(data.database.name);
@@ -467,7 +479,7 @@ export default function App() {
           migrateData: cfMigrateData
         })
       });
-      const data = await res.json();
+      const data = await parseJsonResponse(res);
       if (res.ok && data.success) {
         setCfSaveStatus({
           type: 'success',
@@ -515,7 +527,7 @@ export default function App() {
           migrateData: cfMigrateData
         })
       });
-      const data = await res.json();
+      const data = await parseJsonResponse(res);
       if (res.ok) {
         setCfSaveStatus({
           type: 'success',
@@ -555,7 +567,7 @@ export default function App() {
     setCfSyncSuccess(null);
     try {
       const res = await fetch('/api/cloudflare/sync', { method: 'POST' });
-      const data = await res.json();
+      const data = await parseJsonResponse(res);
       if (res.ok) {
         setCfSyncSuccess(lang === 'fa' ? 'همگام‌سازی اطلاعات با کلودفلر با موفقیت انجام شد ✅' : 'Cloudflare sync completed successfully ✅');
         fetchCloudflareStatus();
@@ -587,7 +599,7 @@ export default function App() {
         try {
           const res = await fetch(`/api/status/${activeTaskId}`);
           if (res.ok) {
-            const task: Task = await res.json();
+            const task: Task = await parseJsonResponse(res);
             setTasks(prev => {
               const newTasks = [...prev];
               const idx = newTasks.findIndex(t => t.id === task.id);
@@ -631,7 +643,7 @@ export default function App() {
         body: JSON.stringify({ url })
       });
       
-      const data = await res.json();
+      const data = await parseJsonResponse(res);
       if (!res.ok) {
         throw new Error(data.error || 'خطا در تحلیل لینک.');
       }
@@ -660,7 +672,7 @@ export default function App() {
         })
       });
 
-      const data = await res.json();
+      const data = await parseJsonResponse(res);
       if (data.taskId) {
         setActiveTaskId(data.taskId);
         setTasks(prev => [{
@@ -1438,7 +1450,7 @@ export default function App() {
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({ durationDays: months, maxUsages: usages })
                 });
-                const data = await res.json();
+                const data = await parseJsonResponse(res);
                 if (data.success) {
                   alert("Gift Code created: " + data.id + "\n\nTelegram Link: https://t.me/" + telegramBotUsername.replace("@", "") + "?start=" + data.id);
                   loadGifts();
