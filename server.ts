@@ -103,6 +103,18 @@ async function startServer() {
 
   app.use(express.json());
 
+  // Enable CORS and Preflight (OPTIONS) support for all routes
+  app.use((req, res, next) => {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS, PATCH, HEAD");
+    res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Authorization");
+    if (req.method === "OPTIONS") {
+      res.sendStatus(200);
+      return;
+    }
+    next();
+  });
+
   // Ensure downloads directory exists
   const downloadsDir = path.join(process.cwd(), "downloads");
   if (!fs.existsSync(downloadsDir)) {
@@ -577,15 +589,21 @@ async function startServer() {
     }
   });
 
-  app.delete("/api/gifts/:id", async (req, res) => {
+  const handleGiftDelete = async (req: express.Request, res: express.Response) => {
+    const giftId = req.params.id || req.body?.id;
+    if (!giftId) return res.status(400).json({ error: "Gift ID is required" });
     try {
-      await db.delete(giftCodes).where(eq(giftCodes.id, req.params.id));
-      syncToCloudflare('gift_codes', 'delete', { id: req.params.id }).catch(() => {});
+      await db.delete(giftCodes).where(eq(giftCodes.id, giftId));
+      syncToCloudflare('gift_codes', 'delete', { id: giftId }).catch(() => {});
       res.json({ success: true });
     } catch (e) {
       res.status(500).json({ error: "Failed to delete gift" });
     }
-  });
+  };
+
+  app.delete("/api/gifts/:id", handleGiftDelete);
+  app.post("/api/gifts/:id/delete", handleGiftDelete);
+  app.post("/api/gifts/delete", handleGiftDelete);
   
   app.get("/api/telegram/status", (req, res) => {
     res.json(getBotStatus());
@@ -822,14 +840,18 @@ async function startServer() {
     }
   });
 
-  app.delete("/api/cloudflare/config", async (req, res) => {
+  const handleRemoveCloudflareConfig = async (req: express.Request, res: express.Response) => {
     try {
       removeCloudflareConfig();
       res.json({ success: true, message: "Cloudflare database configuration removed." });
     } catch (err: any) {
       res.status(500).json({ error: err.message });
     }
-  });
+  };
+
+  app.delete("/api/cloudflare/config", handleRemoveCloudflareConfig);
+  app.post("/api/cloudflare/config/delete", handleRemoveCloudflareConfig);
+  app.post("/api/cloudflare/delete", handleRemoveCloudflareConfig);
 
   app.post("/api/cloudflare/sync", async (req, res) => {
     try {

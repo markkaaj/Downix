@@ -127,14 +127,25 @@ interface Task {
 
 async function parseJsonResponse<T = any>(res: Response): Promise<T> {
   const text = await res.text();
+  let data: any = null;
   try {
-    return JSON.parse(text);
+    data = JSON.parse(text);
   } catch {
+    // Non-JSON response
     if (!res.ok) {
-      throw new Error(`Server returned HTTP ${res.status}`);
+      if (res.status === 405) {
+        throw new Error('متد ارسال شده توسط سرور پشتیبانی نمی‌شود (HTTP 405).');
+      }
+      throw new Error(`خطای سرور (کد ${res.status})`);
     }
-    throw new Error('Server returned invalid data format');
+    throw new Error('داده‌های دریافتی از سرور معتبر نیستند.');
   }
+
+  if (!res.ok) {
+    throw new Error(data?.error || data?.message || `خطای سرور (${res.status})`);
+  }
+
+  return data;
 }
 
 export default function App() {
@@ -551,7 +562,7 @@ export default function App() {
   const handleDisconnectCloudflare = async () => {
     if (!confirm(lang === 'fa' ? 'آیا از قطع اتصال دیتابیس کلودفلر اطمینان دارید؟' : 'Are you sure you want to disconnect Cloudflare Database?')) return;
     try {
-      const res = await fetch('/api/cloudflare/config', { method: 'DELETE' });
+      const res = await fetch('/api/cloudflare/config/delete', { method: 'POST' });
       if (res.ok) {
         setCfStatus(null);
         setCfApiToken('');
@@ -1492,8 +1503,13 @@ export default function App() {
                         <td className="px-5 py-4 text-right">
                           <button onClick={async () => {
                             if(confirm('Are you sure you want to delete this gift code?')) {
-                              await fetch('/api/gifts/' + gift.id, { method: 'DELETE' });
-                              loadGifts();
+                              try {
+                                const res = await fetch('/api/gifts/' + gift.id + '/delete', { method: 'POST' });
+                                await parseJsonResponse(res);
+                                loadGifts();
+                              } catch (e: any) {
+                                alert(e.message || 'Error deleting gift code');
+                              }
                             }
                           }} className="text-red-400 hover:text-red-300 text-sm font-bold uppercase cursor-pointer">Delete</button>
                         </td>
