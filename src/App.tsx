@@ -87,12 +87,13 @@ export default function App() {
     setHealthLoading(true);
     try {
       const res = await fetch('/api/health');
-      if (res.ok) {
+      const contentType = res.headers.get('content-type') || '';
+      if (res.ok && contentType.includes('application/json')) {
         const data = await res.json();
         setHealth(data);
       }
     } catch (err) {
-      console.error(err);
+      console.error('Failed to load health status:', err);
     } finally {
       setHealthLoading(false);
     }
@@ -101,14 +102,15 @@ export default function App() {
   const fetchConfigs = async () => {
     try {
       const res = await fetch('/api/wasmer-config');
-      if (res.ok) {
+      const contentType = res.headers.get('content-type') || '';
+      if (res.ok && contentType.includes('application/json')) {
         const data = await res.json();
         if (data.files) {
           setConfigFiles(data.files);
         }
       }
     } catch (err) {
-      console.error(err);
+      console.error('Failed to load configs:', err);
     }
   };
 
@@ -131,15 +133,18 @@ export default function App() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ url: url.trim() }),
       });
-      const data = await res.json();
-      if (data.success) {
-        setMediaInfo(data);
-        if (data.formats && data.formats.length > 0) {
-          setSelectedFormat(data.formats[0].formatId);
+      const contentType = res.headers.get('content-type') || '';
+      if (contentType.includes('application/json')) {
+        const data = await res.json();
+        if (data.success) {
+          setMediaInfo(data);
+          if (data.formats && data.formats.length > 0) {
+            setSelectedFormat(data.formats[0].formatId);
+          }
         }
       }
     } catch (err) {
-      console.error(err);
+      console.error('Failed to extract media:', err);
     } finally {
       setLoading(false);
     }

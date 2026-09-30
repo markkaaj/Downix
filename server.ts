@@ -97,7 +97,7 @@ async function startServer() {
   });
 
   const app = express();
-  // Respect process.env.PORT for external deployments (Railway, Render, etc.) and fallback to 3000
+  // In external deployments (Railway, Render, VPS, Docker), respect process.env.PORT if provided
   const PORT = Number(process.env.PORT) || 3000;
 
   app.use(express.json());
@@ -105,7 +105,7 @@ async function startServer() {
   // Ensure downloads directory exists
   const downloadsDir = path.join(process.cwd(), "downloads");
   if (!fs.existsSync(downloadsDir)) {
-    fs.mkdirSync(downloadsDir);
+    fs.mkdirSync(downloadsDir, { recursive: true });
   }
 
   // Load and start Telegram Bot if token is saved or in env
@@ -123,10 +123,6 @@ async function startServer() {
       console.error("Failed to auto-start Telegram bot on startup:", err);
     });
   }
-
-  app.get("/health", (req, res) => {
-    res.status(200).send("OK");
-  });
 
   app.use("/downloads", express.static(downloadsDir));
   app.use("/downloads", (req, res) => {
