@@ -1,0 +1,28 @@
+[package]
+name = "universal-media-downloader"
+version = "1.0.0"
+description = "Universal Media Downloader & Telegram Bot on Wasmer Edge"
+license = "MIT"
+
+# Wasmer Edge Web Server configuration
+# To serve the static frontend on Wasmer WebAssembly Edge:
+[dependencies]
+"wasmer/static-web-server" = "^1.2.0"
+
+[fs]
+public = "dist"
+
+[[command]]
+name = "serve"
+module = "wasmer/static-web-server:web_server"
+runner = "wasi"
+
+[[command.annotations.wasi]]
+env = [
+  "SERVER_PORT=8080",
+  "SERVER_ROOT=/public",
+  "FALLBACK_PAGE=/public/index.html"
+]
+
+# For full-stack container deployment on Wasmer Edge (with Node.js + yt-dlp):
+# Wasmer Edge supports Dockerfile deployments directly via `wasmer deploy`

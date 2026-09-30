@@ -97,9 +97,8 @@ async function startServer() {
   });
 
   const app = express();
-  // In AI Studio sandbox, PORT is strictly 3000 behind the reverse proxy.
-  // In external deployments (Railway, Render, VPS, Docker), respect process.env.PORT if provided.
-  const PORT = process.env.APPLET_ID ? 3000 : (Number(process.env.PORT) || 3000);
+  // Respect process.env.PORT for external deployments (Railway, Render, etc.) and fallback to 3000
+  const PORT = Number(process.env.PORT) || 3000;
 
   app.use(express.json());
 

@@ -1,0 +1,10 @@
+node_modules
+.git
+.gitignore
+dist
+downloads
+data/db
+data/test_db
+*.log
+.env
+.env.local
