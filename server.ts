@@ -124,6 +124,10 @@ async function startServer() {
     });
   }
 
+  app.get("/health", (req, res) => {
+    res.status(200).send("OK");
+  });
+
   app.use("/downloads", express.static(downloadsDir));
   app.use("/downloads", (req, res) => {
     res.status(404).json({ error: "File not found" });
