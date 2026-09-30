@@ -60,18 +60,6 @@ export function removeCloudflareConfig(): void {
   }
 }
 
-async function safeParseCloudflareJson(response: Response): Promise<any> {
-  const text = await response.text();
-  try {
-    return JSON.parse(text);
-  } catch {
-    const preview = text.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 100);
-    throw new Error(
-      `Cloudflare API returned non-JSON HTTP ${response.status}${preview ? `: ${preview}` : ''}`
-    );
-  }
-}
-
 /**
  * Fetch accounts associated with the Cloudflare API Token
  */
@@ -88,7 +76,7 @@ export async function fetchCloudflareAccounts(
       }
     });
 
-    const data: any = await safeParseCloudflareJson(response);
+    const data: any = await response.json();
     if (!data.success) {
       const errMsg = (data.errors && data.errors[0]?.message) || 'Invalid Cloudflare API Token or missing Account Read permission';
       return { success: false, accounts: [], error: errMsg };
@@ -232,7 +220,7 @@ export async function executeD1Query(
       })
     });
 
-    const data: any = await safeParseCloudflareJson(response);
+    const data: any = await response.json();
     if (!data.success) {
       const errMsg = (data.errors && data.errors[0]?.message) || 'Query failed on Cloudflare D1';
       return { results: [], success: false, error: errMsg };
@@ -265,7 +253,7 @@ export async function listCloudflareDatabases(
       }
     });
 
-    const data: any = await safeParseCloudflareJson(response);
+    const data: any = await response.json();
     if (!data.success) {
       const errMsg = (data.errors && data.errors[0]?.message) || 'Failed to list Cloudflare D1 databases';
       return { success: false, databases: [], error: errMsg };
@@ -303,7 +291,7 @@ export async function createCloudflareDatabase(
       body: JSON.stringify({ name: databaseName.trim() })
     });
 
-    const data: any = await safeParseCloudflareJson(response);
+    const data: any = await response.json();
     if (!data.success) {
       const errMsg = (data.errors && data.errors[0]?.message) || 'Failed to create Cloudflare D1 database';
       return { success: false, error: errMsg };

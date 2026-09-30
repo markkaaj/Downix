@@ -1,14 +1,11 @@
 import fs from "fs";
 import path from "path";
 import https from "https";
-import { execSync } from "child_process";
 import youtubeDlExec from "youtube-dl-exec";
 
 const binPath = path.join("/tmp", "yt-dlp_linux");
 const localBinPath = path.join(process.cwd(), "yt-dlp_linux");
 
-let activeBinPath = binPath;
-let youtubedlInstance = youtubeDlExec.create(activeBinPath);
 let initPromise: Promise<string> | null = null;
 
 function downloadFile(url: string, dest: string): Promise<void> {
@@ -57,17 +54,6 @@ function downloadFile(url: string, dest: string): Promise<void> {
 }
 
 async function runInit(): Promise<string> {
-  // 0. Check if system-wide yt-dlp is available in PATH (e.g. Nixpacks / Docker / Linux)
-  try {
-    const whichRes = execSync("which yt-dlp 2>/dev/null", { encoding: "utf-8" }).trim();
-    if (whichRes && fs.existsSync(whichRes)) {
-      console.log(`Using system yt-dlp binary at: ${whichRes}`);
-      activeBinPath = whichRes;
-      youtubedlInstance = youtubeDlExec.create(activeBinPath);
-      return activeBinPath;
-    }
-  } catch (_) {}
-
   // 1. Check if the binary is already in /tmp and of valid size
   if (fs.existsSync(binPath)) {
     try {
@@ -75,8 +61,6 @@ async function runInit(): Promise<string> {
       if (stats.size >= 30000000) {
         fs.chmodSync(binPath, 0o755);
         console.log("Valid yt-dlp_linux found in /tmp.");
-        activeBinPath = binPath;
-        youtubedlInstance = youtubeDlExec.create(activeBinPath);
         return binPath;
       }
     } catch (err) {
@@ -91,8 +75,6 @@ async function runInit(): Promise<string> {
       fs.copyFileSync(localBinPath, binPath);
       fs.chmodSync(binPath, 0o755);
       console.log("Successfully copied and chmodded yt-dlp_linux from workspace root.");
-      activeBinPath = binPath;
-      youtubedlInstance = youtubeDlExec.create(activeBinPath);
       return binPath;
     } catch (err) {
       console.error("Failed to copy yt-dlp_linux from workspace root:", err);
@@ -105,10 +87,8 @@ async function runInit(): Promise<string> {
     await downloadFile("https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_linux", binPath);
     fs.chmodSync(binPath, 0o755);
     console.log("Successfully downloaded and chmodded yt-dlp_linux natively.");
-    activeBinPath = binPath;
-    youtubedlInstance = youtubeDlExec.create(activeBinPath);
     return binPath;
-  } catch (err: any) {
+  } catch (err) {
     console.error("Failed to download yt-dlp_linux fallback natively:", err);
     throw new Error(`Failed to initialize yt-dlp binary: ${err.message}`);
   }
@@ -137,9 +117,5 @@ ensureYtdlp().catch((err) => {
   console.error("Proactive yt-dlp initialization failed:", err);
 });
 
-// Dynamic proxy wrapper so any call invokes the currently active binary
-const youtubedl = ((url: any, flags?: any, options?: any) => {
-  return youtubedlInstance(url, flags, options);
-}) as unknown as typeof youtubedlInstance;
-
+const youtubedl = youtubeDlExec.create(binPath);
 export default youtubedl;

@@ -1,8 +1,0 @@
-node_modules
-.git
-data/db
-data/test_db
-downloads
-*.log
-.env
-.env.local
