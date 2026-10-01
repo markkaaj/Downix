@@ -97,16 +97,15 @@ async function startServer() {
   });
 
   const app = express();
-  // In AI Studio sandbox, PORT is strictly 3000 behind the reverse proxy.
-  // In external deployments (Railway, Render, VPS, Docker), respect process.env.PORT if provided.
-  const PORT = process.env.APPLET_ID ? 3000 : (Number(process.env.PORT) || 3000);
+  // In external deployments (Railway, Render, VPS, Docker), respect process.env.PORT if provided
+  const PORT = Number(process.env.PORT) || 3000;
 
   app.use(express.json());
 
   // Ensure downloads directory exists
   const downloadsDir = path.join(process.cwd(), "downloads");
   if (!fs.existsSync(downloadsDir)) {
-    fs.mkdirSync(downloadsDir);
+    fs.mkdirSync(downloadsDir, { recursive: true });
   }
 
   // Load and start Telegram Bot if token is saved or in env

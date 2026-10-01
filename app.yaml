@@ -1,0 +1,24 @@
+# Wasmer Edge App Configuration
+# Docs: https://docs.wasmer.io/edge/deployments
+name: universal-media-downloader
+kind: wasmer.io/App.v0
+scaling:
+  mode: single
+
+# Container / Environment configuration
+env:
+  NODE_ENV: "production"
+  PORT: "3000"
+  DOWNLOAD_DIR: "/tmp/downloads"
+  MAX_CONCURRENT_DOWNLOADS: "5"
+
+# Capabilities and volumes
+volumes:
+  - name: downloads-vol
+    mount: /tmp/downloads
+
+# Secrets can be added via `wasmer secret create <KEY> <VALUE>`
+# Example:
+#   wasmer secret create TELEGRAM_BOT_TOKEN "your_token_here"
+#   wasmer secret create TELEGRAM_API_ID "12345"
+#   wasmer secret create TELEGRAM_API_HASH "your_hash"

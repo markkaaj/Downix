@@ -14,12 +14,8 @@ const { Pool } = pg;
 const DEFAULT_DATABASE_URL = "";
 
 export function getActiveDatabaseUrl(): string {
-  // 1. Check if process.env.DATABASE_URL is set and not known expired URLs
-  if (
-    process.env.DATABASE_URL &&
-    !process.env.DATABASE_URL.includes("sakura.proxy.rlwy.net:26401") &&
-    !process.env.DATABASE_URL.includes("db.swsdqhqmuqbhyykiymif.supabase.co")
-  ) {
+  // 1. Check if process.env.DATABASE_URL is set
+  if (process.env.DATABASE_URL && process.env.DATABASE_URL.trim()) {
     return process.env.DATABASE_URL.trim();
   }
 
@@ -237,7 +233,7 @@ export async function ensureDatabaseTables(): Promise<void> {
     }
 
     // 2. Try testing remote PostgreSQL connection if configured
-    if (rawUrl && !rawUrl.includes("sakura.proxy.rlwy.net")) {
+    if (rawUrl) {
       try {
         console.log("[Database] Checking remote PostgreSQL connection...");
         const client = await pool.connect();
